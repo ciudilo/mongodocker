@@ -7,7 +7,7 @@ MAINTAINER Marco Bonezzi "marco.bonezzi@10gen.com"
 
 #CREATE GROUP AND USER FOR MONGODB
 # add our user and group first to make sure their IDs get assigned consistently, regardless of whatever dependencies get added
-RUN groupadd -r mongodb && useradd -r -g mongodb mongodb
+RUN groupadd -r mongodb && useradd -r -u 500 -g mongodb mongodb
 
 #UPDATE PACKAGES AND INSTALL NUMACTL
 RUN apt-get update \
@@ -26,32 +26,34 @@ RUN curl -o /usr/local/bin/gosu -SL "https://github.com/tianon/gosu/releases/dow
 	&& chmod +x /usr/local/bin/gosu
 
 # ADDING REPO KEY
-sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10
+#RUN sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10
+RUN sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
 
 # SETTING MONGODB VERSION TO WORK WITH
-ENV MONGO_MAJOR 3.0
-ENV MONGO_VERSION 3.0.7
+ENV MONGO_MAJOR 3.2
+ENV MONGO_VERSION 3.2
 
 # APPEND THE LATEST REPO VERSION TO sources.list
-RUN echo "deb http://repo.mongodb.org/apt/ubuntu "$(lsb_release -sc)"/mongodb-org/3.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.0.list
+RUN echo "deb http://repo.mongodb.org/apt/ubuntu "$(lsb_release -sc)"/mongodb-org/3.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.2.list
 
 # UPDATE REPOS AND INSTALL MONGODB WITH DEFINED VERSION
 RUN set -x \
 	&& apt-get update \
-	&& apt-get install -y mongodb-org=$MONGO_VERSION \
+	&& apt-get install -y mongodb-org \
 	&& rm -rf /var/lib/apt/lists/* \
 	&& rm -rf /var/lib/mongodb \
 	&& mv /etc/mongod.conf /etc/mongod.conf.orig
 
 # DATA DIRECTORY SETUP
 RUN mkdir -p /data/db && chown -R mongodb:mongodb /data/db
+#RUN mkdir -p /data
 
 # WE DON'T NEED TO DEFINE THE VOLUME HERE if mounted from HOST
 
 # SETTING ENTRYPOINT
 COPY docker-entrypoint.sh /entrypoint.sh
 # COPY MONGOD WIRED TIGER CONFIG FILE
-COPY mongod_wt.conf /etc/mongod.conf
+COPY mongod_wt.conf.500M.direct_io /etc/mongod.conf
 RUN chown -R mongodb:mongodb /etc/mongod.conf
 
 # DEFINE ENTRYPOINT
@@ -61,6 +63,4 @@ ENTRYPOINT ["/entrypoint.sh"]
 EXPOSE 27017
 EXPOSE 27019
 # COMMAND TO RUN WHEN RUNNING THE CONTAINER
-#CMD [mongod", "-f", "/etc/mongod.conf","--dbpath","/data/db"]
-CMD ["-f", "/etc/mongod.conf"]
 

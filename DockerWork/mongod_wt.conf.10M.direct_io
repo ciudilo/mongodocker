@@ -1,0 +1,8 @@
+storage:
+  dbPath: /data2
+  engine: wiredTiger 
+  wiredTiger:
+    engineConfig:
+      configString: 'cache_size=10M,direct_io=[data]'
+    collectionConfig: 
+      configString: 'type=file'
